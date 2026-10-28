@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<meta name="description" content="Calculadora con asistente">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/calculadora.svg" type="image/svg+xml">
+<title>Calculadora</title>
+<style>
+:root{color-scheme:dark;--bg:#101114;--panel:#1b1c21;--key:#292b32;--text:#f7f7f8;--muted:#a9abb5;--orange:#ff9f0a;--blue:#6ea8fe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100dvh;display:flex;justify-content:center}
+.app{width:100%;max-width:440px;min-height:100dvh;padding:16px 16px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:8px 2px}.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}.logo{width:32px;height:32px}.assist{border:1px solid #454752;background:#22242a;color:#fff;border-radius:20px;padding:9px 13px;font-size:14px}
+.display{flex:1;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding:18px 8px 20px;overflow:hidden}.small{color:var(--muted);min-height:24px;font-size:18px;overflow-wrap:anywhere}.value{font-size:clamp(42px,13vw,64px);font-weight:300;letter-spacing:-2px;overflow-wrap:anywhere;max-width:100%}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.key{height:clamp(58px,14vw,76px);border:0;border-radius:22px;background:var(--key);color:#fff;font-size:25px;font-weight:500}.key:active{filter:brightness(1.3)}.key.utility{background:#454750}.key.op,.key.equals{background:var(--orange);color:#fff}.key.zero{grid-column:span 2;text-align:left;padding-left:28px}
+.panel{display:none;background:var(--panel);border:1px solid #343640;border-radius:20px;padding:16px;gap:12px}.panel.open{display:flex;flex-direction:column}.panel h2{font-size:19px;margin:0}.note{font-size:13px;line-height:1.45;color:var(--muted);margin:0}.chatlog{font-size:14px;line-height:1.5;min-height:30px;white-space:pre-wrap}.chatrow{display:flex;gap:8px}.chatrow input{min-width:0;flex:1;background:#101114;border:1px solid #454752;border-radius:12px;color:#fff;padding:12px;font-size:15px}.send,.photo{border:0;border-radius:12px;background:#343741;color:#fff;padding:11px 13px}.foot{text-align:center;color:#777b86;font-size:11px}
+</style>
+</head>
+<body><main class="app">
+<header class="top"><div class="brand"><img class="logo" src="./icons/calculadora.svg" alt="">Calculadora</div><button class="assist" id="toggle">Asistente ✦</button></header>
+<section class="display" aria-live="polite"><div class="small" id="history"></div><div class="value" id="screen">0</div></section>
+<section class="keys" id="keys">
+<button class="key utility" data-action="clear">AC</button><button class="key utility" data-action="sign">+/−</button><button class="key utility" data-action="percent">%</button><button class="key op" data-op="÷">÷</button>
+<button class="key" data-num="7">7</button><button class="key" data-num="8">8</button><button class="key" data-num="9">9</button><button class="key op" data-op="×">×</button>
+<button class="key" data-num="4">4</button><button class="key" data-num="5">5</button><button class="key" data-num="6">6</button><button class="key op" data-op="−">−</button>
+<button class="key" data-num="1">1</button><button class="key" data-num="2">2</button><button class="key" data-num="3">3</button><button class="key op" data-op="+">+</button>
+<button class="key zero" data-num="0">0</button><button class="key" data-action="decimal">.</button><button class="key equals" data-action="equals">=</button>
+</section>
+<section class="panel" id="panel"><h2>Asistente IA</h2><p class="note">La calculadora funciona. El asistente todavía no está conectado a un servicio de IA, así que no envíes información privada aquí.</p><div class="chatlog" id="chatlog">Cuando se conecte la IA, podrás escribir preguntas y analizar imágenes.</div><div class="chatrow"><input id="question" placeholder="Escribí una pregunta…" autocomplete="off"><button class="send" id="send">Enviar</button></div><div class="chatrow"><button class="photo" id="pick">Seleccionar foto</button><input id="photo" type="file" accept="image/*" hidden></div><p class="note" id="photoNote">La selección de foto todavía no realiza análisis.</p></section>
+<footer class="foot">Calculadora · funciona sin conexión después de la primera visita</footer>
+</main>
+<script>
+const screen=document.getElementById('screen'),history=document.getElementById('history'),panel=document.getElementById('panel');let current='0',stored=null,operator=null,resetNext=false;
+function render(){screen.textContent=current.length>13?Number(current).toPrecision(8):current}
+function calc(a,b,op){if(op==='+')return a+b;if(op==='−')return a-b;if(op==='×')return a*b;if(op==='÷')return b===0?NaN:a/b;return b}
+document.getElementById('keys').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.num!==undefined){if(resetNext||current==='0'){current=b.dataset.num;resetNext=false}else if(current.length<16)current+=b.dataset.num;render();return}
+if(b.dataset.op){stored=Number(current);operator=b.dataset.op;history.textContent=current+' '+operator;resetNext=true;return}
+switch(b.dataset.action){case'clear':current='0';stored=null;operator=null;history.textContent='';resetNext=false;break;case'decimal':if(resetNext){current='0.';resetNext=false}else if(!current.includes('.'))current+='.';break;case'sign':current=String(Number(current)*-1);break;case'percent':current=String(Number(current)/100);break;case'equals':if(operator!==null&&stored!==null){const a=stored,bv=Number(current),op=operator,res=calc(a,bv,op);history.textContent=a+' '+op+' '+bv+' =';current=Number.isFinite(res)?String(Number(res.toPrecision(12))):'Error';operator=null;stored=null;resetNext=true}break}render()});
+document.getElementById('toggle').addEventListener('click',()=>panel.classList.toggle('open'));
+document.getElementById('send').addEventListener('click',()=>{const q=document.getElementById('question');if(q.value.trim()){document.getElementById('chatlog').textContent='La IA todavía no está conectada. Tu mensaje no se envió.\n\nPregunta escrita: '+q.value.trim();q.value=''}});
+document.getElementById('pick').addEventListener('click',()=>document.getElementById('photo').click());
+document.getElementById('photo').addEventListener('change',e=>{document.getElementById('photoNote').textContent=e.target.files.length?'Foto seleccionada; todavía no se analiza.':'La selección de foto todavía no realiza análisis.'});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
